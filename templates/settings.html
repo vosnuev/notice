@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}카카오 설정 - 청약알리미{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-1"><i class="bi bi-gear me-2"></i>카카오톡 알림 설정</h4>
+<p class="text-muted mb-4">카카오 개발자 앱을 연결하면 자격이 되는 청약이 올라올 때 카카오톡으로 알림을 받습니다.</p>
+
+<div class="row">
+  <div class="col-lg-7">
+
+    <!-- 상태 표시 -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          {% if token_ok %}
+          <i class="bi bi-check-circle-fill text-success fs-2 me-3"></i>
+          <div>
+            <div class="fw-bold text-success">카카오톡 연동 완료</div>
+            <div class="text-muted small">청약 알림을 받을 준비가 되었습니다.</div>
+          </div>
+          <button id="testBtn" class="btn btn-sm btn-outline-success ms-auto">
+            <i class="bi bi-send me-1"></i>테스트 전송
+          </button>
+          {% else %}
+          <i class="bi bi-exclamation-circle-fill text-warning fs-2 me-3"></i>
+          <div>
+            <div class="fw-bold text-warning">카카오톡 미연동</div>
+            <div class="text-muted small">아래 단계를 따라 연동해주세요.</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- REST API 키 입력 -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header fw-semibold">
+        <span class="badge bg-primary me-2">1단계</span>REST API 키 입력
+      </div>
+      <div class="card-body">
+        <form method="post">
+          <label class="form-label">카카오 REST API 키</label>
+          <div class="input-group">
+            <input type="text" class="form-control font-monospace"
+                   name="kakao_rest_api_key"
+                   value="{{ profile.kakao_rest_api_key if profile and profile.kakao_rest_api_key else '' }}"
+                   placeholder="abc1234def5678...">
+            <button class="btn btn-primary">저장</button>
+          </div>
+          <div class="form-text">
+            <a href="https://developers.kakao.com" target="_blank">developers.kakao.com</a>에서
+            앱을 만들고 <strong>앱 키 → REST API 키</strong>를 복사해주세요.
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 카카오 로그인 -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header fw-semibold">
+        <span class="badge bg-primary me-2">2단계</span>카카오 로그인 (권한 허용)
+      </div>
+      <div class="card-body">
+        {% if kakao_auth_url %}
+        <a href="{{ kakao_auth_url }}" class="btn btn-warning btn-lg">
+          <img src="https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png"
+               height="20" class="me-2" alt="카카오">
+          카카오 로그인
+        </a>
+        <div class="form-text mt-2">
+          클릭 후 카카오 계정으로 로그인하고 <strong>카카오톡 메시지 전송</strong> 권한을 허용해주세요.
+        </div>
+        {% else %}
+        <div class="text-muted">REST API 키를 먼저 저장해주세요.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 완료 후 -->
+    {% if token_ok %}
+    <div class="card mb-4 shadow-sm border-success">
+      <div class="card-header fw-semibold bg-success-subtle">
+        <span class="badge bg-success me-2">✓ 완료</span>이제 자동으로 알림이 옵니다
+      </div>
+      <div class="card-body">
+        <ul class="mb-0 small">
+          <li><a href="{{ url_for('profile_page') }}">내 정보</a>에서 소득·자산을 입력하면 자격 자동 계산</li>
+          <li>설정한 주기마다 새 공고를 확인해 자격이 되면 카카오톡으로 즉시 알림</li>
+          <li>대시보드에서 <strong>'지금 바로 수집하기'</strong>로 즉시 확인 가능</li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- 설정 가이드 -->
+  <div class="col-lg-5 mt-4 mt-lg-0">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-question-circle me-2"></i>카카오 앱 설정 가이드
+      </div>
+      <div class="card-body small">
+        <ol class="mb-0">
+          <li class="mb-2">
+            <a href="https://developers.kakao.com" target="_blank">developers.kakao.com</a> 접속 후
+            로그인 → <strong>내 애플리케이션 → 애플리케이션 추가하기</strong>
+          </li>
+          <li class="mb-2">
+            앱 이름: <strong>청약알리미</strong> (마음대로), 회사명: 본인 이름 입력
+          </li>
+          <li class="mb-2">
+            앱 설정 → <strong>플랫폼</strong> → Web 추가:<br>
+            <code>http://localhost:5000</code>
+          </li>
+          <li class="mb-2">
+            제품 설정 → <strong>카카오 로그인</strong> → 활성화 ON<br>
+            Redirect URI 추가: <code>http://localhost:5000/kakao/callback</code>
+          </li>
+          <li class="mb-2">
+            카카오 로그인 → <strong>동의항목</strong> → 카카오톡 메시지 전송(talk_message) 설정
+            <span class="badge bg-warning text-dark">선택동의</span>로 설정
+          </li>
+          <li class="mb-2">
+            앱 설정 → <strong>앱 키</strong> → <strong>REST API 키</strong> 복사 후 위에 입력
+          </li>
+          <li>
+            <strong>카카오 로그인</strong> 버튼 클릭 → 권한 허용 → 완료!
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card mt-3 shadow-sm border-info">
+      <div class="card-body small text-muted">
+        <i class="bi bi-shield-lock me-2"></i>
+        <strong>보안 안내</strong><br>
+        카카오 토큰은 내 컴퓨터의 로컬 DB에만 저장됩니다.
+        외부 서버로 전송되지 않습니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="testResult" class="mt-3" style="display:none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const testBtn = document.getElementById('testBtn');
+if (testBtn) {
+  testBtn.addEventListener('click', async () => {
+    testBtn.disabled = true;
+    testBtn.textContent = '전송 중...';
+    const res = await fetch('/kakao/test', {method: 'POST'});
+    const data = await res.json();
+    const el = document.getElementById('testResult');
+    el.style.display = 'block';
+    el.innerHTML = `<div class="alert alert-${data.ok ? 'success' : 'danger'}">
+      <i class="bi bi-${data.ok ? 'check-circle' : 'x-circle'} me-2"></i>${data.msg}
+    </div>`;
+    testBtn.disabled = false;
+    testBtn.innerHTML = '<i class="bi bi-send me-1"></i>테스트 전송';
+  });
+}
+</script>
+{% endblock %}

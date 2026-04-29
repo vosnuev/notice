@@ -1,0 +1,103 @@
+/* 청약알리미 스타일 */
+
+body {
+  background-color: #f8f9fa;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system,
+               BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 네비게이션 */
+.navbar-brand {
+  font-size: 1.25rem;
+  letter-spacing: -0.5px;
+}
+
+/* 통계 카드 */
+.stat-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+.stat-num {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+/* 청약 유형 뱃지 */
+.badge-type {
+  font-size: 0.72rem;
+  padding: 0.3em 0.65em;
+}
+.badge-public-sale   { background: #0d6efd !important; }
+.badge-private-sale  { background: #6610f2 !important; }
+.badge-public-rental { background: #198754 !important; }
+.badge-youth-rental  { background: #fd7e14 !important; }
+.badge-happy-house   { background: #20c997 !important; }
+.badge-default-type  { background: #6c757d !important; }
+
+/* 공고 카드 */
+.listing-card {
+  transition: box-shadow 0.2s, transform 0.2s;
+  border-radius: 12px !important;
+}
+.listing-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+  transform: translateY(-2px);
+}
+.listing-card.eligible {
+  border-left: 4px solid #198754 !important;
+}
+
+/* 테이블 */
+.table td, .table th {
+  vertical-align: middle;
+  font-size: 0.88rem;
+}
+.table-success td {
+  background-color: #d1f7e4 !important;
+}
+
+/* 버튼 미니 */
+.btn-xs {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+/* 카드 헤더 */
+.card-header {
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+/* 지역 체크 */
+.region-check .form-check-input {
+  margin-top: 0.2rem;
+}
+.region-check label {
+  cursor: pointer;
+}
+.region-check .form-check-input:checked + label {
+  font-weight: 700;
+  color: #0d6efd;
+}
+
+/* 반응형 */
+@media (max-width: 576px) {
+  .stat-num { font-size: 1.5rem; }
+  .stat-icon { font-size: 1.5rem; }
+}
+
+/* 알림 배지 애니메이션 */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(25, 135, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+}
+.badge.bg-success {
+  animation: pulse 2s infinite;
+}

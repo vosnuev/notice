@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}대시보드 - 청약알리미{% endblock %}
+
+{% block content %}
+<!-- 요약 카드 -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="stat-icon text-primary"><i class="bi bi-search"></i></div>
+        <div class="stat-num">{{ total }}</div>
+        <div class="stat-label">모니터링 공고</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100 bg-success-subtle">
+      <div class="card-body">
+        <div class="stat-icon text-success"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-num text-success">{{ eligible_total }}</div>
+        <div class="stat-label">자격 해당 공고</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="stat-icon text-warning"><i class="bi bi-bell-fill"></i></div>
+        <div class="stat-num">
+          {% if last_notified %}
+            {{ last_notified.strftime('%m/%d') }}
+          {% else %}
+            -
+          {% endif %}
+        </div>
+        <div class="stat-label">마지막 알림</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="stat-icon text-info"><i class="bi bi-person-fill"></i></div>
+        <div class="stat-num" style="font-size:1.2rem;">
+          {{ profile.name if profile else '-' }}
+        </div>
+        <div class="stat-label">{{ profile.age if profile else '-' }}세 · {{ '무주택' if (profile and not profile.has_house) else '유주택' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 액션 버튼 -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <form action="{{ url_for('check_now') }}" method="post">
+    <button class="btn btn-primary">
+      <i class="bi bi-arrow-clockwise me-1"></i>지금 바로 수집하기
+    </button>
+  </form>
+  {% if profile and not profile.kakao_access_token %}
+  <a href="{{ url_for('settings_page') }}" class="btn btn-warning">
+    <i class="bi bi-chat-fill me-1"></i>카카오 연동 필요
+  </a>
+  {% endif %}
+  {% if not profile or not profile.monthly_income %}
+  <a href="{{ url_for('profile_page') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-person-gear me-1"></i>내 정보 입력하기
+  </a>
+  {% endif %}
+</div>
+
+{% if not profile or not profile.monthly_income %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle-fill me-2"></i>
+  <strong>시작하기:</strong>
+  <a href="{{ url_for('profile_page') }}">내 정보(소득·자산)</a>를 먼저 입력하면
+  자격이 되는 청약만 골라서 보여드립니다.
+</div>
+{% endif %}
+
+<!-- 자격 해당 공고 -->
+{% if eligible_listings %}
+<h5 class="fw-bold mb-3">
+  <i class="bi bi-star-fill text-warning me-2"></i>내가 신청 가능한 청약
+  <span class="badge bg-success ms-2">{{ eligible_total }}건</span>
+</h5>
+<div class="row g-3 mb-5">
+  {% for lst in eligible_listings %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-success border-2 shadow-sm listing-card eligible">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="badge badge-type {{ lst.listing_type | badge_class }}">
+            {{ lst.listing_type }}
+          </span>
+          <span class="badge bg-secondary">{{ lst.source }}</span>
+        </div>
+        <h6 class="card-title fw-bold">{{ lst.title }}</h6>
+        <div class="text-muted small mb-2">
+          <i class="bi bi-geo-alt me-1"></i>{{ lst.district or lst.region or '-' }}
+        </div>
+        {% if lst.total_supply %}
+        <div class="small mb-1">
+          <i class="bi bi-houses me-1"></i>공급세대: <strong>{{ lst.total_supply }}세대</strong>
+        </div>
+        {% endif %}
+        {% if lst.application_start %}
+        <div class="small mb-1">
+          <i class="bi bi-calendar-event me-1"></i>
+          {{ lst.application_start }} ~ {{ lst.application_end or '?' }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{{ lst.detail_url }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+          <i class="bi bi-box-arrow-up-right me-1"></i>공고 상세 보기
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- 전체 공고 목록 -->
+<h5 class="fw-bold mb-3">
+  <i class="bi bi-list-ul me-2"></i>전체 모니터링 공고
+</h5>
+
+{% if all_listings %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>공고명</th>
+        <th>유형</th>
+        <th>출처</th>
+        <th>지역</th>
+        <th>접수기간</th>
+        <th>자격</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lst in all_listings %}
+      <tr class="{{ 'table-success' if lst.is_eligible else '' }}">
+        <td class="fw-semibold" style="max-width:240px;">{{ lst.title }}</td>
+        <td>
+          <span class="badge badge-type {{ lst.listing_type | badge_class }}">
+            {{ lst.listing_type }}
+          </span>
+        </td>
+        <td><span class="badge bg-secondary">{{ lst.source }}</span></td>
+        <td class="text-muted small">{{ lst.district or lst.region or '-' }}</td>
+        <td class="text-muted small">
+          {{ lst.application_start or '-' }}<br>
+          <span class="text-danger">~ {{ lst.application_end or '-' }}</span>
+        </td>
+        <td>
+          {% if lst.is_eligible %}
+            <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>해당</span>
+          {% else %}
+            <span class="badge bg-light text-muted">미해당</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ lst.detail_url }}" target="_blank" class="btn btn-xs btn-outline-secondary">
+            <i class="bi bi-link-45deg"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-inbox display-4 d-block mb-3"></i>
+  아직 수집된 공고가 없습니다.<br>
+  <strong>'지금 바로 수집하기'</strong> 버튼을 눌러보세요!
+</div>
+{% endif %}
+
+<!-- 초기화 버튼 -->
+{% if all_listings %}
+<div class="mt-4 text-end">
+  <form action="{{ url_for('clear_listings') }}" method="post"
+        onsubmit="return confirm('공고 목록을 모두 초기화할까요?')">
+    <button class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-trash me-1"></i>공고 목록 초기화
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

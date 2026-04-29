@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}내 정보 입력 - 청약알리미{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <h4 class="fw-bold mb-1"><i class="bi bi-person-circle me-2"></i>내 정보 입력</h4>
+    <p class="text-muted mb-4">입력한 정보를 바탕으로 청약 자격을 자동으로 계산합니다.</p>
+
+    <form method="post">
+
+      <!-- 1. 기본 정보 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold bg-primary text-white">
+          <i class="bi bi-person me-2"></i>기본 정보
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">이름(별명)</label>
+              <input type="text" class="form-control" name="name"
+                     value="{{ profile.name if profile else '' }}" placeholder="나">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">나이 <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="age" required min="18" max="80"
+                     value="{{ profile.age if profile else 25 }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">세대원 수</label>
+              <input type="number" class="form-control" name="family_count" min="1" max="10"
+                     value="{{ profile.family_count if profile else 1 }}">
+              <div class="form-text">본인 포함 동일 주민등록 세대원 수</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">혼인 상태 <span class="text-danger">*</span></label>
+              <select class="form-select" name="marital_status">
+                <option value="single" {% if not profile or profile.marital_status == 'single' %}selected{% endif %}>미혼</option>
+                <option value="married" {% if profile and profile.marital_status == 'married' %}selected{% endif %}>기혼</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex flex-column">
+              <label class="form-label">자녀 여부</label>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="has_children" id="has_children"
+                       {% if profile and profile.has_children %}checked{% endif %}>
+                <label class="form-check-label" for="has_children">자녀 있음</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">자녀 수</label>
+              <input type="number" class="form-control" name="children_count" min="0" max="10"
+                     value="{{ profile.children_count if profile else 0 }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 주택 보유 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold bg-warning text-dark">
+          <i class="bi bi-house me-2"></i>주택 보유 현황
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="has_house" id="has_house"
+                       {% if profile and profile.has_house %}checked{% endif %}>
+                <label class="form-check-label" for="has_house">
+                  <strong>본인</strong> 주택 보유
+                </label>
+              </div>
+              <div class="form-text text-danger">주택을 소유하면 대부분 청약 자격이 없습니다.</div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="family_has_house" id="family_has_house"
+                       {% if profile and profile.family_has_house %}checked{% endif %}>
+                <label class="form-check-label" for="family_has_house">
+                  <strong>세대원</strong> 주택 보유
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 소득 정보 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold bg-info text-white">
+          <i class="bi bi-cash-coin me-2"></i>소득 정보
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">월 소득 (세전, 만원)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="monthly_income" min="0"
+                       value="{{ profile.monthly_income if profile else 0 }}"
+                       placeholder="예: 250">
+                <span class="input-group-text">만원/월</span>
+              </div>
+              <div class="form-text">세전 기준, 가구 전체 소득의 합산</div>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="p-3 bg-light rounded w-100 small">
+                <strong>2024년 도시근로자 월평균소득 기준</strong><br>
+                1인: 348만원 · 2인: 487만원<br>
+                3인: 602만원 · 4인: 689만원
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 자산 정보 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold bg-secondary text-white">
+          <i class="bi bi-bank me-2"></i>자산 정보
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">부동산 자산 (만원)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="real_estate_assets" min="0"
+                       value="{{ profile.real_estate_assets if profile else 0 }}">
+                <span class="input-group-text">만원</span>
+              </div>
+              <div class="form-text">토지·건물·아파트 등</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">금융 자산 (만원)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="financial_assets" min="0"
+                       value="{{ profile.financial_assets if profile else 0 }}">
+                <span class="input-group-text">만원</span>
+              </div>
+              <div class="form-text">예금·적금·주식·펀드 등</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">자동차 가액 (만원)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="car_value" min="0"
+                       value="{{ profile.car_value if profile else 0 }}">
+                <span class="input-group-text">만원</span>
+              </div>
+              <div class="form-text">보험개발원 기준 차량가액</div>
+            </div>
+            <div class="col-12">
+              <div class="alert alert-secondary mb-0">
+                <i class="bi bi-calculator me-2"></i>
+                <strong>총 자산:</strong>
+                <span id="totalAssets">
+                  {{ (profile.total_assets if profile else 0) | int | format_num }}만원
+                </span>
+                <small class="ms-3 text-muted">(공공분양 청년특공 기준: 3.61억원 이하)</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. 청약통장 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold" style="background:#e8f4fd;">
+          <i class="bi bi-piggy-bank me-2"></i>청약통장 정보
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">가입 기간</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="savings_period_months" min="0"
+                       value="{{ profile.savings_period_months if profile else 0 }}">
+                <span class="input-group-text">개월</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">납입 횟수</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="savings_payment_count" min="0"
+                       value="{{ profile.savings_payment_count if profile else 0 }}">
+                <span class="input-group-text">회</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">납입 총액</label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="savings_amount" min="0"
+                       value="{{ profile.savings_amount if profile else 0 }}">
+                <span class="input-group-text">만원</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 선호 지역 & 유형 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold bg-success text-white">
+          <i class="bi bi-geo-alt me-2"></i>선호 지역 & 청약 유형
+        </div>
+        <div class="card-body">
+          <label class="form-label">선호 지역 <small class="text-muted">(복수 선택 가능, 비워두면 전국)</small></label>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            {% set current_regions = profile.get_preferred_regions() if profile else [] %}
+            {% for region in all_regions %}
+            <div class="form-check form-check-inline region-check">
+              <input class="form-check-input region-cb" type="checkbox"
+                     id="region_{{ region }}" value="{{ region }}"
+                     {% if region in current_regions %}checked{% endif %}>
+              <label class="form-check-label" for="region_{{ region }}">{{ region }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="preferred_regions" id="preferred_regions_input"
+                 value="{{ (profile.get_preferred_regions() | join(',')) if profile else '' }}">
+
+          <hr>
+          <label class="form-label">선호 청약 유형</label>
+          <div class="row g-2">
+            <div class="col-6 col-md-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="prefer_public_sale" id="p1"
+                       {% if not profile or profile.prefer_public_sale %}checked{% endif %}>
+                <label class="form-check-label" for="p1">공공분양</label>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="prefer_private_sale" id="p2"
+                       {% if not profile or profile.prefer_private_sale %}checked{% endif %}>
+                <label class="form-check-label" for="p2">민간분양</label>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="prefer_public_rental" id="p3"
+                       {% if not profile or profile.prefer_public_rental %}checked{% endif %}>
+                <label class="form-check-label" for="p3">공공임대</label>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="prefer_youth_rental" id="p4"
+                       {% if not profile or profile.prefer_youth_rental %}checked{% endif %}>
+                <label class="form-check-label" for="p4">청년임대/행복주택</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. 수집 주기 -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-clock me-2"></i>자동 수집 주기
+        </div>
+        <div class="card-body">
+          <div class="col-md-4">
+            <label class="form-label">확인 주기</label>
+            <select class="form-select" name="check_interval_hours">
+              {% for h in [1, 2, 3, 6, 12, 24] %}
+              <option value="{{ h }}"
+                {% if profile and profile.check_interval_hours == h %}selected{% endif %}>
+                {{ h }}시간마다
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="bi bi-save me-2"></i>저장하기
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg">취소</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- 자격 요약 -->
+  <div class="col-lg-4 mt-4 mt-lg-0">
+    <div class="card shadow-sm sticky-top" style="top: 80px;">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-clipboard-check me-2"></i>현재 자격 예측
+      </div>
+      <div class="card-body">
+        {% if eligibility_summary %}
+          {% for item in eligibility_summary %}
+          <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-{{ 'check-circle-fill text-success' if item.ok else 'x-circle-fill text-danger' }} me-2 fs-5"></i>
+            <div>
+              <div class="fw-semibold small">{{ item.type }}</div>
+              <div class="text-muted" style="font-size:0.78rem;">{{ item.condition }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted small">
+            정보를 입력하면 자격 예측이 표시됩니다.
+          </div>
+        {% endif %}
+        <hr>
+        <div class="small text-muted">
+          ⚠️ 이 예측은 참고용입니다. 실제 자격은 공고문을 확인하세요.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 자산 합계 실시간 계산
+const assetFields = ['real_estate_assets','financial_assets','car_value'];
+function updateTotal() {
+  let sum = 0;
+  assetFields.forEach(f => {
+    sum += parseInt(document.querySelector(`[name="${f}"]`).value || 0);
+  });
+  document.getElementById('totalAssets').textContent =
+    sum.toLocaleString('ko-KR') + '만원';
+}
+assetFields.forEach(f => {
+  document.querySelector(`[name="${f}"]`).addEventListener('input', updateTotal);
+});
+
+// 지역 체크박스 → hidden input 동기화
+function syncRegions() {
+  const checked = Array.from(document.querySelectorAll('.region-cb:checked'))
+                       .map(cb => cb.value);
+  document.getElementById('preferred_regions_input').value = checked.join(',');
+}
+document.querySelectorAll('.region-cb').forEach(cb => {
+  cb.addEventListener('change', syncRegions);
+});
+</script>
+{% endblock %}

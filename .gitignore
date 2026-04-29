@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.log
+instance/
+.env
+*.lock
+uv.lock
+.venv/
+.python-version
+sh_list.html
+test_soco.py
