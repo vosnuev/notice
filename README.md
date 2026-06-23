@@ -1,53 +1,65 @@
-# Cheongak Alimi (청약알리미)
+# Housing Subscription Alert System
 
-> A self-hosted Flask web app that scrapes Korean public housing subscription notices, checks your eligibility, and sends matched listings to you via KakaoTalk. (내 청약 자격에 맞는 공고를 자동 수집하고 카카오톡으로 알림을 보내주는 로컬 웹 앱)
+<div align="center">
 
----
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=flat-square&logo=flask&logoColor=white)
+![BeautifulSoup](https://img.shields.io/badge/BeautifulSoup-3776AB?style=flat-square&logo=python&logoColor=white)
+![APScheduler](https://img.shields.io/badge/APScheduler-4A90D9?style=flat-square&logo=clockify&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
+![KakaoTalk](https://img.shields.io/badge/KakaoTalk-FFCD00?style=flat-square&logo=kakaotalk&logoColor=black)
 
-## 🛠️ Tech Stack (기술 스택)
-
-| Layer | Library / Tool |
-|---|---|
-| Web framework | Flask 3.x |
-| ORM / DB | Flask-SQLAlchemy + SQLite |
-| Scheduler | APScheduler (BackgroundScheduler) |
-| Scraping | requests + BeautifulSoup4 |
-| Notification | Kakao Talk "나에게 보내기" API |
-| Runtime | Python ≥ 3.14, uv |
-| Platform | Windows (install.bat / run.bat) |
+</div>
 
 ---
 
-## ✨ Features (주요 기능)
+## 📌 Overview
 
-- **Multi-source scraping** — collects notices from 5 sources on a configurable interval (기본 6시간):
-  - 청약홈 (APT2you) — apartment & officetel listings
-  - LH청약센터 — public rental, youth jeonse, happy housing
-  - SH서울주택공사 — Seoul public housing
-  - 마이홈포털 (국토부) — public rental
-  - 서울시 청년안심주택 (SOCO) — Seoul youth-safe housing
-- **Eligibility engine** — evaluates each listing against your profile (age, income vs. urban-worker median, assets, house-ownership,청약통장 period, preferred regions & types)
-- **KakaoTalk push notification** — sends a feed-type message with listing details and a link whenever an eligible notice appears
-- **Web dashboard** — Bootstrap 5 UI with stat cards, eligible-listing cards, and a full listing table with inline eligibility badges
-- **Profile page** — enter income, assets, 청약통장 info, preferred regions/types; eligibility is recalculated live
-- **KakaoTalk settings page** — step-by-step OAuth2 setup (REST API key → login → token auto-refresh)
-- **Duplicate prevention** — MD5-keyed deduplication across scrape runs
+A self-hosted Flask web application that automatically scrapes Korean public housing subscription (청약) listings from 5 official sources, evaluates eligibility against your personal profile, and delivers matched alerts directly to your KakaoTalk messenger on a scheduled interval.
 
 ---
 
-## 📁 Project Structure (프로젝트 구조)
+## ✨ Features
+
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | **Multi-Source Scraping** | Collects new listings from 5 official Korean housing portals every N hours |
+| 2 | **Eligibility Engine** | Evaluates each listing against user profile (age, income, assets, 청약통장, region preferences) |
+| 3 | **KakaoTalk Alerts** | Sends feed-style push notifications with listing details and direct links via Kakao API |
+| 4 | **Web Dashboard** | Bootstrap 5 UI with stat cards, eligible listings, and a full table with eligibility badges |
+| 5 | **Profile Management** | Enter and update personal/financial info; eligibility recalculated live |
+| 6 | **OAuth2 Token Flow** | Step-by-step KakaoTalk OAuth2 setup with automatic token refresh |
+| 7 | **Duplicate Prevention** | MD5-keyed deduplication across scrape runs to avoid repeat notifications |
+
+---
+
+## 🛠 Tech Stack
+
+| Category | Technology | Purpose |
+|----------|-----------|---------|
+| Web Framework | Flask 3.x | HTTP server, routing, Jinja2 templates |
+| Database | Flask-SQLAlchemy + SQLite | Persistent storage for listings, profile, tokens |
+| Scheduler | APScheduler (BackgroundScheduler) | Periodic scrape & notification jobs |
+| Scraping | requests + BeautifulSoup4 | HTTP fetching and HTML parsing |
+| Notification | KakaoTalk Message API | Push alerts to personal KakaoTalk account |
+| Frontend | Bootstrap 5 | Responsive dashboard UI |
+| Runtime | Python ≥ 3.14, uv | Package management and execution |
+| Platform | Windows | install.bat / run.bat launcher scripts |
+
+---
+
+## 📁 Project Structure
 
 ```
 notice/
 ├── app.py              # Single-file Flask app (models, scraper, eligibility, routes, scheduler)
 ├── scraper.py          # Standalone scraper module (5 sources)
-├── eligibility.py      # Eligibility check engine (standalone, mirrors logic in app.py)
+├── eligibility.py      # Eligibility check engine
 ├── models.py           # SQLAlchemy models (UserProfile, Listing, NotificationLog)
 ├── kakao.py            # KakaoTalk OAuth2 + send module
-├── main.py             # Entry stub (prints hello)
 ├── requirements.txt    # pip dependencies
 ├── pyproject.toml      # uv/PEP 517 project config
-├── install.bat         # One-shot install: copies files to C:\cheongak, runs uv sync + app
+├── install.bat         # One-shot install: copies files, runs uv sync + app
 ├── run.bat             # Re-launch shortcut (uv run app.py)
 ├── templates/
 │   ├── base.html       # Jinja2 base layout
@@ -58,90 +70,26 @@ notice/
     └── css/            # Custom CSS
 ```
 
-> **Note:** `app.py` is a self-contained single-file version that inlines the models, scraper, eligibility, and Kakao logic. The sibling modules (`scraper.py`, `eligibility.py`, `models.py`, `kakao.py`) are the modular equivalents.
+> `app.py` is a self-contained single-file version that inlines models, scraper, eligibility, and Kakao logic. The sibling modules are the modular equivalents for development/testing.
 
 ---
 
-## 🔄 Usage Flow (사용 흐름)
-
-```
-[Start app]
-    │
-    ├─► Create default UserProfile in SQLite (~/cheongak_data/cheongak.db)
-    │
-    ├─► APScheduler runs scrape_all() every N hours
-    │       └─► 5 scrapers → deduplicate → save new Listing rows
-    │               └─► eligibility check against UserProfile
-    │                       └─► if eligible + KakaoTalk connected → send feed message
-    │
-    └─► User opens http://localhost:5000
-            ├─► Dashboard: stat cards + eligible listings + full table
-            ├─► /profile: fill in personal / financial info → recalculates eligibility
-            └─► /settings: enter Kakao REST API key → OAuth2 login → token stored in DB
-```
-
----
-
-## 🏗️ Architecture (아키텍처)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Flask app (app.py)                                     │
-│                                                         │
-│  Routes          Models (SQLite)   Scheduler            │
-│  /               UserProfile       APScheduler          │
-│  /profile    ◄── Listing       ◄── run_check()          │
-│  /settings       NotifLog          every N hours        │
-│  /check/now                                             │
-│  /kakao/*                                               │
-│                                                         │
-│  Scraper                  Eligibility engine            │
-│  scrape_apt2you()         eligible(profile, listing)    │
-│  scrape_lh()              eli_summary(profile)          │
-│  scrape_sh()                                            │
-│  scrape_myhome()          KakaoTalk                     │
-│  scrape_soco_youth()      ka_send(token, listing)       │
-└─────────────────────────────────────────────────────────┘
-         │ HTTP scraping                │ Kakao API
-         ▼                             ▼
-  청약홈 / LH / SH /           kapi.kakao.com
-  마이홈 / SOCO                나에게 보내기
-```
-
-**Data directory** (created automatically): `~/cheongak_data/`
-- `cheongak.db` — SQLite database
-- `cheongak.log` — application log
-
----
-
-## ⚙️ Environment Setup (환경 설정)
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Python ≥ 3.14
 - [uv](https://docs.astral.sh/uv/) package manager
 
-### KakaoTalk notification (optional)
-
-1. Go to [developers.kakao.com](https://developers.kakao.com) → create an app
-2. Platform → Web → add `http://localhost:5000`
-3. Kakao Login → activate → add Redirect URI: `http://localhost:5000/kakao/callback`
-4. Consent items → enable **카카오톡 메시지 전송** (talk_message)
-5. Copy the **REST API key** — you will paste it in the `/settings` page
-
----
-
-## 🚀 How to Run (실행 방법)
-
-### First-time install (Windows)
+### Installation (Windows)
 
 ```bat
 install.bat
 ```
 
-This copies all project files to `C:\cheongak`, runs `uv sync`, and starts the app.
+Copies project files to `C:\cheongak`, runs `uv sync`, and launches the app automatically.
 
-### Subsequent runs
+### Subsequent Runs
 
 ```bat
 run.bat
@@ -155,23 +103,118 @@ uv run app.py
 
 Then open **http://localhost:5000** in your browser.
 
-### Manual install (non-Windows / uv already set up)
+### Manual Install (non-Windows)
 
 ```bash
-# clone or download the repo
 pip install -r requirements.txt   # or: uv sync
 python app.py
 ```
 
 ---
 
-## 📄 License & References (라이선스 & 참고 문서)
+### KakaoTalk Notification Setup
 
-- [청약홈 (APT2you)](https://www.applyhome.co.kr)
-- [LH청약센터](https://apply.lh.or.kr)
-- [SH서울주택공사](https://www.i-sh.co.kr)
-- [마이홈포털](https://www.myhome.go.kr)
-- [서울시 청년안심주택](https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008)
-- [카카오 Developers](https://developers.kakao.com)
+1. Go to [developers.kakao.com](https://developers.kakao.com) and create an app
+2. Platform → Web → add `http://localhost:5000`
+3. Kakao Login → activate → add Redirect URI: `http://localhost:5000/kakao/callback`
+4. Consent items → enable **카카오톡 메시지 전송** (talk_message)
+5. Copy your **REST API key** and paste it in the `/settings` page of the running app
 
-> Scraping targets are Korean government and public housing portals. Site structure may change; update URL/parsing logic in `scraper.py` or `app.py` accordingly.
+### Environment Variables
+
+| Variable | Description | Where to Set |
+|----------|-------------|--------------|
+| `KAKAO_REST_API_KEY` | Kakao REST API key for OAuth2 authentication | `/settings` page UI |
+| `KAKAO_ACCESS_TOKEN` | OAuth2 access token (auto-stored after login) | Managed by app (SQLite) |
+| `KAKAO_REFRESH_TOKEN` | OAuth2 refresh token (auto-rotated) | Managed by app (SQLite) |
+| `SCRAPE_INTERVAL_HOURS` | How often to run the scraper (default: 6) | `app.py` config |
+
+---
+
+## 🔄 Usage Flow
+
+```mermaid
+flowchart TD
+    A([App Start]) --> B[Initialize SQLite DB\n& UserProfile]
+    B --> C[APScheduler starts\nbackground job]
+    C --> D{Every N hours}
+    D --> E[Scrape 5 Housing Sites]
+    E --> F[Deduplicate\nby MD5 key]
+    F --> G[Save new Listings\nto SQLite]
+    G --> H{Eligible for\nUserProfile?}
+    H -- Yes --> I{KakaoTalk\nconnected?}
+    H -- No --> D
+    I -- Yes --> J[Send KakaoTalk\nFeed Message]
+    I -- No --> D
+    J --> D
+    B --> K([User opens\nlocalhost:5000])
+    K --> L[Dashboard:\nStat cards + Listings]
+    K --> M[Profile page:\nUpdate eligibility criteria]
+    K --> N[Settings page:\nKakaoTalk OAuth2 setup]
+```
+
+---
+
+## 🏗 Architecture
+
+```mermaid
+graph TD
+    subgraph Flask App
+        R[Routes] --> DB[(SQLite DB)]
+        SCH[APScheduler] --> SC[Scraper Module]
+        SCH --> EL[Eligibility Engine]
+        EL --> DB
+        SC --> DB
+        R --> DB
+    end
+
+    subgraph Data Sources
+        S1[청약홈 APT2you]
+        S2[LH청약센터]
+        S3[SH서울주택공사]
+        S4[마이홈포털]
+        S5[서울시 청년안심주택]
+    end
+
+    subgraph Notification
+        KA[Kakao Message API\nkapi.kakao.com]
+    end
+
+    SC -- HTTP + BeautifulSoup4 --> S1 & S2 & S3 & S4 & S5
+    EL -- eligible match --> KA
+    KA -- Feed message --> USER([KakaoTalk\nUser])
+```
+
+---
+
+## 📊 Data Sources
+
+| # | Source | Type |
+|---|--------|------|
+| 1 | [청약홈 (APT2you)](https://www.applyhome.co.kr) | Apartment & officetel listings |
+| 2 | [LH청약센터](https://apply.lh.or.kr) | Public rental, youth jeonse, happy housing |
+| 3 | [SH서울주택공사](https://www.i-sh.co.kr) | Seoul public housing |
+| 4 | [마이홈포털](https://www.myhome.go.kr) | National public rental (국토부) |
+| 5 | [서울시 청년안심주택](https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008) | Seoul youth-safe housing |
+
+---
+
+## 🎯 Skills Demonstrated
+
+| Skill Area | Implementation |
+|------------|---------------|
+| **Web Scraping** | Multi-target HTML scraping with `requests` + `BeautifulSoup4` across 5 government portals; handles pagination and varied DOM structures |
+| **REST API Integration** | Full KakaoTalk OAuth2 flow (authorization code → access token → auto-refresh) and feed-type message delivery via Kakao Message API |
+| **Task Scheduling** | Background job scheduling with `APScheduler`; configurable interval, runs independently of HTTP request cycle |
+| **Database Design** | SQLAlchemy ORM models for listings, user profile, and notification logs; MD5-based deduplication strategy |
+| **Web Application** | Flask routing, Jinja2 templating, Bootstrap 5 UI; multi-page app with dashboard, profile, and settings views |
+| **Automation** | End-to-end pipeline: scrape → filter → notify, triggered on schedule with no manual intervention required |
+| **Windows Deployment** | `.bat` launcher scripts for one-click install and run on Windows without manual Python environment management |
+
+---
+
+## 📄 License
+
+This project is open source. Scraping targets are Korean government and public housing portals — site structure may change; update URL/parsing logic in `scraper.py` or `app.py` accordingly.
+
+> **References:** [청약홈](https://www.applyhome.co.kr) · [LH청약센터](https://apply.lh.or.kr) · [SH서울주택공사](https://www.i-sh.co.kr) · [마이홈포털](https://www.myhome.go.kr) · [SOCO 청년안심주택](https://soco.seoul.go.kr) · [Kakao Developers](https://developers.kakao.com)
